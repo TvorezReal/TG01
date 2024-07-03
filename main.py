@@ -1,11 +1,12 @@
 import asyncio
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart, Command
-from aiogram.types import Message, FSInputFile
+from aiogram.types import Message, FSInputFile, CallbackQuery
 from config import TOKEN
 from googletrans import Translator
 import requests
 import random
+import keyboards as kb
 
 from gtts import gTTS
 import os
@@ -17,11 +18,33 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 translator = Translator()
 
-@dp.message()
-async def translate_text(message: Message):
-    original_text = message.text.lower()
-    translated = translator.translate(text=original_text, src='auto', dest='en')
-    await message.reply(f"Перевод: {translated.text}")
+@dp.message(Command('dynamic'))
+async def dynamic(message: Message):
+    await message.answer('Нажми кнопку ниже', reply_markup=kb.dynamic_keyboard)
+
+@dp.callback_query(F.data == 'view_more')
+async def view_more(callback: CallbackQuery):
+    await callback.answer("Новости подгружаются", show_alert=True)
+    await callback.message.edit_text('Выберите опцию', reply_markup=kb.change_keyboard)
+
+@dp.callback_query(F.data.in_({"option_1", "option_2"}))
+async def process_option(callback: CallbackQuery):
+    option_text = "Опция 1" if callback.data == "option_1" else "Опция 2"
+    await bot.send_message(callback.message.chat.id, f"Вы выбрали: {option_text}")
+
+@dp.message(F.text == "Привет")
+async def test_button(message: Message):
+   await message.answer(f'Привет, {message.from_user.full_name}!')
+
+@dp.message(F.text == "Пока")
+async def test_button(message: Message):
+   await message.answer(f'До свидания, {message.from_user.full_name}!')
+
+# @dp.message()
+# async def translate_text(message: Message):
+#     original_text = message.text.lower()
+#     translated = translator.translate(text=original_text, src='auto', dest='en')
+#     await message.reply(f"Перевод: {translated.text}")
 
 @dp.message(Command('audio'))
 async def audio(message: Message):
@@ -100,8 +123,12 @@ async def help(message: Message):
 
 @dp.message(CommandStart())
 async def start(message: Message):
-    await message.reply(f"Привет,{message.from_user.full_name}. \n Я бот, который может предоставить тебе прогноз погоды.")
+    await message.reply(f"Привет,{message.from_user.full_name}",
+                        reply_markup=kb.main)
 
+@dp.message(Command('links'))
+async def links(message: Message):
+    await message.answer('Вот мои ссылки: ',reply_markup=kb.inline_keyboard_test)
 
 
 # @dp.message()
